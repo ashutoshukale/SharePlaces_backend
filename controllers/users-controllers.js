@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken");
 
 const HttpError = require("../models/http-error");
 const User = require("../models/user");
+const { uploadOnCloudinary } = require("../util/cloudinary");
 
 const getUsers = async (req, res, next) => {
   let users;
@@ -13,7 +14,7 @@ const getUsers = async (req, res, next) => {
     users = await User.find({}, "-password");
   } catch (err) {
     return next(
-      new HttpError("Fetching Usersm Failed, please try again later...", 500)
+      new HttpError("Fetching Users Failed, please try again later...", 500)
     );
   }
   res.json({ users: users.map((user) => user.toObject({ getters: true })) });
@@ -50,10 +51,15 @@ const signup = async (req, res, next) => {
       new HttpError("Could Not Create User, Please Try again...", 500)
     );
   }
+  let imageFilePath;
+  imageFilePath = req.file.path;
+
+  const imagePath = await uploadOnCloudinary(imageFilePath);
+
   const createdUser = new User({
     name,
     email,
-    image: req.file.path,
+    image: imagePath?.secure_url || "",
     password: hashedPassword,
     places: [],
   });
