@@ -7,6 +7,10 @@ const getCoordinates = require("../util/location");
 const Place = require("../models/place");
 const User = require("../models/user");
 const HttpError = require("../models/http-error");
+const {
+  uploadOnCloudinary,
+  deleteFromCloudinary,
+} = require("../util/cloudinary");
 
 const getPlaceById = async (req, res, next) => {
   const placeId = req.params.pid;
@@ -74,14 +78,19 @@ const createPlace = async (req, res, next) => {
   } catch (error) {
     return next(error);
   }
+  let placeImageFilePath;
+  placeImageFilePath = req.file.path;
+
+  const placeImage = await uploadOnCloudinary(placeImageFilePath);
 
   const createdPlace = new Place({
     title,
     description,
     address,
     location,
-    image: req.file.path,
+    image: placeImage?.secure_url,
     creator: req.userData.userId,
+    imageCloudinaryId: placeImage.public_id,
   });
 
   let user;
@@ -179,7 +188,14 @@ const deletePlaceById = async (req, res, next) => {
     return next(error);
   }
 
-  const imagePath = place.image;
+  const deletePlaceImage = await deleteFromCloudinary(place.imageCloudinaryId);
+
+  if (!deletePlaceImage) {
+    const error = new HttpError(
+      "Something Went Wrong, Could Not Delete the Place",
+      500
+    );
+  }
 
   try {
     // await Place.deleteOne({ _id: placeId });
@@ -196,9 +212,6 @@ const deletePlaceById = async (req, res, next) => {
     );
     return next(error);
   }
-  fs.unlink(imagePath, (err) => {
-    console.log(err);
-  });
   res.status(200).json({ message: "Deleted Place" });
 };
 
