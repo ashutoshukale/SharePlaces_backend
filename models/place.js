@@ -33,6 +33,10 @@ const placeSchema = new Schema({
     required: true,
     ref: "User",
   },
+  imageCloudinaryId: {
+    type: String,
+    required: true,
+  },
 });
 
 module.exports = mongoose.model("Place", placeSchema);
